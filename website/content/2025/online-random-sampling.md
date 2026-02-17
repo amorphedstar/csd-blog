@@ -40,7 +40,7 @@ The efficiency of sampling algorithms can be quantified in terms of the [Shannon
 For a probability distribution \\(\mathbf{p} = (p_0, p_1, \ldots, p_{k-1})\\), the Shannon entropy is defined as
 \\[H(\mathbf{p}) = \sum_{i=0}^{k-1} p_i \log\left(\frac{1}{p_i}\right),\\]
 which we can think of as the expected information content of a random variable drawn from the distribution \\(\mathbf{p}\\).[^log]
-Donald E. Knuth and Andrew C. Yao [proved in 1976](https://archive.org/details/algorithmscomple0000symp/page/356/mode/2up) derived the most efficient possible algorithm, which produces a sample from distribution \\(\mathbf{p}\\) using between \\(H(\mathbf{p})\\) and \\(H(\mathbf{p})+2\\) coin flips in expectation (with the exact value depending on the specific distribution \\(\mathbf{p}\\)).
+In 1976, Donald E. Knuth and Andrew C. Yao [derived the most efficient possible algorithm](https://archive.org/details/algorithmscomple0000symp/page/356/mode/2up), which produces a sample from distribution \\(\mathbf{p}\\) using between \\(H(\mathbf{p})\\) and \\(H(\mathbf{p})+2\\) coin flips in expectation (with the exact value depending on the specific distribution \\(\mathbf{p}\\)).
 
 # Online random sampling {online-random-sampling}
 
@@ -59,7 +59,7 @@ An alternative is to use the stateless version of Knuth and Yao's algorithm, usi
 
 Although both \\(H(\mathbf{p}_1)+\cdots+H(\mathbf{p}_n)+2\\) and \\(H(\mathbf{p}_1)+\cdots+H(\mathbf{p}_n)+2n\\) are asymptotically \\(\Theta(n)\\), the difference can be significant in practice when the source of randomness is expensive.
 Furthermore, in information-theoretic problems from source coding to channel capacity, the common goal is to drive the input-to-output entropy ratio to 1, not merely \\(O(1)\\).
-In this spirit, we consider how efficiently a sampler can achieve an entropy rate of \\(H(\mathbf{p}_1)+\cdots+H(\mathbf{p}_n)+\varepsilon n + O(1)\\) for small \\(\varepsilon > 0\\), corresponding to an input-to-output entropy ratio of \\(1 + \Theta(\varepsilon)\\) if the target distributions have bounded entropy.
+In this spirit, we consider how efficiently a sampler can achieve an entropy cost of \\(H(\mathbf{p}_1)+\cdots+H(\mathbf{p}_n)+\varepsilon n + O(1)\\) for small \\(\varepsilon > 0\\), corresponding to an input-to-output entropy ratio of \\(1 + \Theta(\varepsilon)\\) if the target distributions have bounded entropy.
 
 A common approach to improve entropy efficiency while retaining bounded space and efficient sampling is to batch samples together.
 For example, we could run Knuth and Yao's optimal online algorithm for sampling from the first \\(\lceil 2/\varepsilon \rceil\\) distributions, then reset its internal state and repeat for the next \\(\lceil 2/\varepsilon \rceil\\) distributions, ad infinitum.
@@ -215,7 +215,7 @@ Recall the image of how the inversion method splits up the uniform variable valu
 
 ![generating a nonuniform random number using the inversion method](standalone-nonuniform.png)
 
-Conditioning on the event that \\(U\\) falls in the range \\([A_{i-1}, A_i)\\), we obtain a new uniform random state given by \\(Z^\prime = U - A_{i-1}\\) and \\(M^\prime = a_i\\), satisfying \\(Z^\prime \sim \operatorname{Uniform}(\\{0,1,\ldots,M^\prime-1\\})\\).
+Conditioning on the event that \\(U\\) falls in the range \\([A_i, A_{i+1})\\), we obtain a new uniform random state given by \\(Z^\prime = U - A_i\\) and \\(M^\prime = a_i\\), satisfying \\(Z^\prime \sim \operatorname{Uniform}(\\{0,1,\ldots,M^\prime-1\\})\\).
 We can recycle \\((Z^\prime,M^\prime)\\) back into the global state variables \\((Z,M)\\) using a standard trick for merging two independent uniform random states, namely, setting \\(Z \leftarrow Z + Z^\prime \cdot M\\) and \\(M \leftarrow M \cdot M^\prime\\).
 The full pseudocode for the inversion method with randomness recycling is as follows.
 
@@ -250,7 +250,7 @@ Given a bound on the size of the input integers \\(m_{\max}\\), to find the smal
 \varepsilon = \frac{m_{\max}}{M_{\min}-m_{\max}} \log(M_{\min}/m_{\max}) - \log(1 - m_{\max}/M_{\min})
 \\]
 for \\(M_{\min}\\).
-The solution grows as \\(M_{\min} = m_{\max} \cdot \tilde{O}(1 / \varepsilon)\\) as \\(\varepsilon \to 0\\), which means that the required integer size \\(1+\lceil\log M_{\min}\rceil\\) grows as \\(O(\log(m_{\min}/\varepsilon))\\).
+The solution grows as \\(M_{\min} = m_{\max} \cdot \tilde{O}(1 / \varepsilon)\\) as \\(\varepsilon \to 0\\), which means that the required integer size \\(1+\lceil\log M_{\min}\rceil\\) grows as \\(O(\log(m_{\max}/\varepsilon))\\).
 
 The logarithmic dependence on \\(1/\varepsilon\\) makes it practical to run `Uniform_Recycling` with very small entropy loss.
 For the example where all inputs are 32-bit integers (i.e., \\(m_{\max} < 2^{32}\\)), and the state variables are 64-bit integers (i.e., \\(M_{\min} = 2^{63}\\)), the expected entropy loss is less than \\(2 \times 10^{-8}\\) bits per sample.
@@ -296,7 +296,7 @@ As noted by [RANDOM.ORG](https://www.random.org/randomness), random numbers are 
 Some applications benefit from the reproducibility (determinism) and efficiency afforded by using pseudorandom number generators, but often it is ideal to use a true source of randomness, derived from unpredictable physical processes.
 [RANDOM.ORG](https://www.random.org) uses an array of radios to detect atmospheric noise, each generating roughly [12,000 bits of randomness per second](https://www.random.org/faq/#Q4.1), and provides a public API for generating true uniform random numbers from this source.
 Furthermore, each generated random number is independent of all previous random numbers given to the user or any other user.
-Hence, it would be easy to exhaust this source of randomness using inefficient sampling algorithms, so they [use](https://www.random.org/faq/#Q2.10) the same technique as in `Uniform_Recycling` to efficiently provide discrete uniform random numbers.
+Hence, it would be easy to exhaust this source of randomness using inefficient sampling algorithms, so they use the [same technique](https://www.random.org/faq/#Q2.10) as in `Uniform_Recycling` to efficiently provide discrete uniform random numbers.
 Using our generalized randomness recycling methods, it is now possible for random number service providers or library developers to achieve a similar entropy efficiency for samples requested from more general, nonuniform distributions.
 
 <!-- ## True randomness
