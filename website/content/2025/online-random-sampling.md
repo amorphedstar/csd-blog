@@ -24,7 +24,7 @@ committee = [
 Suppose you are given a discrete probability distribution \\(\mathbf{p} = (p_0, p_1, \ldots, p_{k-1})\\) and must generate a random integer \\(X \in \\{0,\ldots,k-1\\}\\) with probability \\(\mathbb{P}(X = i) = p_i\\).
 We can think of this problem as rolling a loaded \\(k\\)-sided die, where side \\(i\\) has probability \\(p_i\\), and we call this the random sampling problem.
 
-A prominent use case is in generating text using large language models, which provide a probability distribution over the next word in a text.
+A prominent use case of random sampling is in generating text using large language models, which provide a probability distribution over the next word in a text.
 A random sampler can be used in conjunction with a language model to generate text, word by word.
 More general applications of random sampling include stochastic simulation, statistical modeling, AI, machine learning, and cryptography.
 
@@ -39,12 +39,12 @@ Randomness is a scarce resource, so researchers study fundamental limits on the 
 The efficiency of sampling algorithms can be quantified in terms of the [Shannon entropy](https://en.wikipedia.org/wiki/Entropy_(information_theory)) of the inputs and outputs.
 For a probability distribution \\(\mathbf{p} = (p_0, p_1, \ldots, p_{k-1})\\), the Shannon entropy is defined as
 \\[H(\mathbf{p}) = \sum_{i=0}^{k-1} p_i \log\left(\frac{1}{p_i}\right),\\]
-which we can think of as the expected information content of a random variable drawn from the distribution \\(\mathbf{p}\\).[^2]
+which we can think of as the expected information content of a random variable drawn from the distribution \\(\mathbf{p}\\).[^log]
 Donald E. Knuth and Andrew C. Yao [proved in 1976](https://archive.org/details/algorithmscomple0000symp/page/356/mode/2up) derived the most efficient possible algorithm, which produces a sample from distribution \\(\mathbf{p}\\) using between \\(H(\mathbf{p})\\) and \\(H(\mathbf{p})+2\\) coin flips in expectation (with the exact value depending on the specific distribution \\(\mathbf{p}\\)).
 
 # Online random sampling {online-random-sampling}
 
-In real applications, a random number generation library is used to sample from a dynamic sequence of distributions \\(\\{\mathbf{p}\_1, \mathbf{p}\_2, \ldots\\}\\).[^1]
+In real applications, a random number generation library is used to sample from a dynamic sequence of distributions \\(\\{\mathbf{p}\_1, \mathbf{p}\_2, \ldots\\}\\).[^index]
 We call this the online random sampling problem, in contrast to the basic random sampling problem proposed earlier, where we generate a single sample from a given distribution.
 Basic random sampling algorithms can be expressed as computable functions \\((\mathbf{C}, \mathbf{p}) \mapsto X\\), where \\(\mathbf{C}\\) denotes the input sequence of coin flips, \\(\mathbf{p}\\) is the target distribution, and \\(X\\) is the output sample.
 If \\(\mathbf{C}\_0=\mathbf{C}\\) and \\(\mathbf{C}\_i\\) represents the unused coin flips after sampling from \\( \mathbf{p}\_{1}, \ldots, \mathbf{p}\_{i} \\), then we can apply the same basic random sampling function to the online problem setting by simply mapping each \\( (\mathbf{C}\_{i-1}, \mathbf{p}\_i) \mapsto X\_i \\).
@@ -55,7 +55,7 @@ The entropy-efficient algorithm of Knuth and Yao can be extended to sample in an
 However, this extension uses the entire program history, including the coin flips consumed and the distributions sampled, and therefore requires linearly growing memory and increasing computation time per sample as it progresses through the sequence, which makes it impractical for sampling long sequences.
 An alternative is to use the stateless version of Knuth and Yao's algorithm, using a fresh start for each new sample; the main drawback of this approach is that its entropy consumption is worse, bounded only by \\(H(\mathbf{p}_1)+\cdots+H(\mathbf{p}_n)+2n\\).
 
-## Entropy-space tradeoffs {entropy-space-tradeoffs}
+## Entropy/space tradeoffs {entropy-space-tradeoffs}
 
 Although both \\(H(\mathbf{p}_1)+\cdots+H(\mathbf{p}_n)+2\\) and \\(H(\mathbf{p}_1)+\cdots+H(\mathbf{p}_n)+2n\\) are asymptotically \\(\Theta(n)\\), the difference can be significant in practice when the source of randomness is expensive.
 Furthermore, in information-theoretic problems from source coding to channel capacity, the common goal is to drive the input-to-output entropy ratio to 1, not merely \\(O(1)\\).
@@ -74,11 +74,24 @@ For the special case of discrete uniform sampling (i.e., \\(\mathbf{p}\_0 = \cdo
 This efficient uniform sampling algorithm maintains a state describing a discrete uniform random variable, which is carried over between rounds, and never reset to zero.
 We show how discrete uniform state variables can also be used to recycle unused randomness from nonuniform samplers.
 
+## Randomness recycling {randomness-recycling}
+
+In this post, we will mainly focus on the inversion method for nonuniform sampling, which has the general structure of first converting coin flips to a discrete uniform random variable over a certain range, and then transforming the uniform into a sample from the target distribution, as shown in the following diagram.
+
+![stateless inversion diagram](standalone-diagram.png)
+
+Our proposed algorithms build on this same underlying structure, using deterministic transformations of uniform random variables, but we add randomness recycling rules to carry over unused randomness from round to round.
+We take as convention that our recycled random states are all discrete uniform random variables, represented as pairs of integers \\(Z,M\\) such that \\(Z \sim \operatorname{Uniform}(\\{0,1,\ldots,M-1\\})\\).
+These discrete uniform states are convenient to work with, because merging and splitting operations are as simple as integer multiplication and division.
+The following diagram illustrates the information flow in one round of our online sampling algorithm, where we have essentially added a recycling loop to the classical inversion method.
+
+![randomness recycling inversion diagram](standalone-diagram-rr.png)
+
 # Stateless sampling algorithms {stateless-sampling-algorithms}
 
 Our proposed online sampling algorithms build on classical algorithms for generating a single sample from a given distribution, which we now review.
 Knuth and Yao's algorithm is based on DDG trees (discrete distribution generating trees), which represent sampling algorithms as binary trees, where at each internal node, the sampler flips a fair coin to decide which child node to visit next, and each leaf node corresponds to an outcome in the target distribution.
-However, a general implementation of their method requires either exponential space to explicitly construct the DDG tree, or linear sampling time to implicitly traverse the tree.
+However, a general implementation of their method requires either exponential space to explicitly construct the DDG tree, or linear sampling runtime to implicitly traverse the tree.
 Keith Schwarz wrote [a popular blog post](https://www.keithschwarz.com/darts-dice-coins/) investigating several sampling algorithms, but without regard to entropy efficiency, and under the assumption that exact operations on real numbers can be performed in constant time.
 We have derived randomness recycling rules for many of these algorithms, but we will focus on the binary-search inversion method ("Roulette Wheel Selection" in Schwarz's blog post).
 
@@ -242,16 +255,17 @@ The solution grows as \\(M_{\min} = m_{\max} \cdot \tilde{O}(1 / \varepsilon)\\)
 The logarithmic dependence on \\(1/\varepsilon\\) makes it practical to run `Uniform_Recycling` with very small entropy loss.
 For the example where all inputs are 32-bit integers (i.e., \\(m_{\max} < 2^{32}\\)), and the state variables are 64-bit integers (i.e., \\(M_{\min} = 2^{63}\\)), the expected entropy loss is less than \\(2 \times 10^{-8}\\) bits per sample.
 For nonuniform sampling, `Inversion_Recycling` has the same entropy loss as `Uniform_Recycling`, and the underlying inversion method remains linear in the input size.
-The following table compares the efficiency of our method with the Knuth and Yao method, either statelessly (using a fresh start for each new sample), or online, as described in the [online random sampling](#online-random-sampling) section.
+The following table compares the entropy/space efficiency of our method with the Knuth and Yao method, either statelessly (using a fresh start for each new sample), fully online, or batched (online, but resetting the state every \\(\lceil 2/\varepsilon \rceil\\) iterations) as described in the [online random sampling](#online-random-sampling) section.
 
-| Method                    | Amortized Entropy Loss Bound | Expected Space and Time Complexity            |
-|:------------------------- | ---------------------------- | --------------------------------------------- |
-| Knuth and Yao (Stateless) | 2                            | linearithmic in input                         |
-| Knuth and Yao (Online)    | 0                            | unbounded                                     |
-| `Inversion_Recycling`     | \\( \varepsilon \\)          | linear in input and \\(\log(1/\varepsilon)\\) |
+| Method                    | Amortized Entropy Loss Bound | State Space Complexity       |
+|:------------------------- | ---------------------------- | ---------------------------- |
+| Knuth and Yao (Stateless) | 2                            | 0                            |
+| Knuth and Yao (Online)    | 0                            | unbounded                    |
+| Knuth and Yao (Batched)   | \\( \varepsilon \\)          | \\(O(1/\varepsilon)\\)       |
+| `Inversion_Recycling`     | \\( \varepsilon \\)          | \\(O(\log(1/\varepsilon))\\) |
 <!-- | Batched methods           | \\( \varepsilon \\)          | linear in input and \\(1/\varepsilon\\) | -->
 
-We have since proven that our algorithm is optimal up to a factor of \\(2\\) and the restriction to rational probabilities with bounded denominators.
+We have since proven that our algorithm is optimal up to a factor of \\(2\\), ignoring the restriction to rational probabilities with bounded denominators.
 Namely, the state space of any online sampling algorithm achieving an amortized entropy loss bound of \\(\varepsilon\\) for arbitrary finite discrete distributions requires at least \\(\log(1/\varepsilon)\\) bits.
 Our method requires \\(2\log(d/\varepsilon)\\) bits for storing its state \\((Z,M)\\), where \\(d\\) is a bound on the common denominators of the probabilities in the input distributions.
 
@@ -272,14 +286,18 @@ We also applied the same randomness recycling technique to accelerate the follow
 - [the Fast Loaded Dice Roller](https://doi.org/10.48550/arXiv.2003.03830), and
 - [the Amplified Loaded Dice Roller](https://doi.org/10.48550/arXiv.2504.04267).
 
+Different algorithms have different tradeoffs between space and runtime, but of particular note is the alias method, described in detail in [Schwarz's blog post](https://www.keithschwarz.com/darts-dice-coins/), which requires linear space and a constant number of operations per sample.
+By applying randomness recycling to the alias method, we can achieve the same linear space complexity and constant number of sampling operations; the tradeoff is that the integers used while sampling require an additional \\(O(\log(1/\varepsilon))\\) bits of precision to achieve an amortized entropy loss of \\(\varepsilon\\), and we need to propagate the state of size \\(O(\log(1/\varepsilon))\\) between rounds.
+
 # Application
 
-Our entropy-efficient exact online sampling algorithms are useful in any application using high-quality randomness.
+Our entropy-efficient exact online sampling algorithms are useful in any application requiring high-quality randomness.
 As noted by [RANDOM.ORG](https://www.random.org/randomness), random numbers are useful in many applications beyond computer science, including games, lotteries, experimental design, and even the arts.
 Some applications benefit from the reproducibility (determinism) and efficiency afforded by using pseudorandom number generators, but often it is ideal to use a true source of randomness, derived from unpredictable physical processes.
-[RANDOM.ORG](https://www.random.org) uses an array of radios to detect atmospheric noise, each generating roughly [12,000 bits of randomness per second](https://www.random.org/faq/#Q4.1), and provides a public API for generating random numbers from this source of randomness.
-It would be easy to exhaust this source of randomness using inefficient sampling algorithms, so they use `Uniform_Recycling` and efficiently provide discrete uniform random numbers.
-Using our method, random number service providers or library developers can achieve a similar entropy efficiency for samples requested from more general, nonuniform distributions.
+[RANDOM.ORG](https://www.random.org) uses an array of radios to detect atmospheric noise, each generating roughly [12,000 bits of randomness per second](https://www.random.org/faq/#Q4.1), and provides a public API for generating true uniform random numbers from this source.
+Furthermore, each generated random number is independent of all previous random numbers given to the user or any other user.
+Hence, it would be easy to exhaust this source of randomness using inefficient sampling algorithms, so they [use](https://www.random.org/faq/#Q2.10) the same technique as in `Uniform_Recycling` to efficiently provide discrete uniform random numbers.
+Using our generalized randomness recycling methods, it is now possible for random number service providers or library developers to achieve a similar entropy efficiency for samples requested from more general, nonuniform distributions.
 
 <!-- ## True randomness
 
@@ -296,6 +314,6 @@ For further details, please see the [full paper](https://doi.org/10.48550/arXiv.
 
 This article is based on joint work with [Feras Saad](https://www.cs.cmu.edu/~fsaad/), presented at the [2026 Symposium on Discrete Algorithms](https://doi.org/10.1137/1.9781611978971.89).
 
-[^1]: In contrast to the probability weights, the indices on the sequence of distributions are not represented in the computer, only implicitly used for the mathematical analysis, hence the one-based indexing.
+[^log]: We use \\(\log\\) to denote the logarithm using base 2, so that the entropy is measured in bits.
 
-[^2]: We use \\(\log\\) to denote the logarithm using base 2, so that the entropy is measured in bits.
+[^index]: In contrast to the probability weights, the indices on the sequence of distributions are not represented in the computer, only implicitly used for the mathematical analysis, hence the one-based indexing.
