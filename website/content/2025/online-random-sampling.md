@@ -15,9 +15,9 @@ tags = ["random variate generation", "entropy", "algorithm design and analysis"]
 author = {name = "Thomas L. Draper", url = "https://www.cs.cmu.edu/~tdraper/" }
 # The committee specification is  a list of objects similar to the author.
 committee = [
-    {name = "Harry Q. Bovik", url = "http://www.cs.cmu.edu/~bovik/"},
-    {name = "Committee Member 2's Full Name", url = "Committee Member 2's page"},
-    {name = "Committee Member 3's Full Name", url = "Committee Member 3's page"}
+    {name = "Yang (Richard) Peng", url = "https://www.cs.cmu.edu/~yangp/"},
+    {name = "Weina Wang", url = "https://www.cs.cmu.edu/~weinaw/"},
+    {name = "Yixuan (Even) Xu", url = "https://yixuanevenxu.github.io/"}
 ]
 +++
 
