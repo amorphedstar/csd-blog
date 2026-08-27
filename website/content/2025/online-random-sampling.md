@@ -198,7 +198,7 @@ Here is pseudocode for our full algorithm for online uniform sampling.
 ```python
 Z = 0
 M = 1
-M_target = 2**63
+M_target = 9223372036854775808
 def Uniform_Recycling(m):
     global Z, M, M_target
     while True:
@@ -218,7 +218,7 @@ def Uniform_Recycling(m):
 The state variables `Z, M` represent a discrete uniform random variable, containing recycled randomness, independent of the previous outputs from the algorithm.
 We use the term "randomness recycling" to describe how random information (obtained through `Flip()`) is stored for use when generating future samples.
 The parameter `M_target` should be much larger than any `m` that will be sampled, to ensure that the rejection probability is small.
-For example, if `m` is always a 32-bit integer, then `M_target = 2**63` ensures that the rejection probability is less than \\(2^{-31}\\), while also ensuring that all program variables fit in 64-bit integers.
+For example, if `m` is always a 32-bit integer, then `M_target = 9223372036854775808` (which is \\(2^{63}\\)) ensures that the rejection probability is less than \\(2^{-31}\\), while also ensuring that all program variables fit in 64-bit integers.
 
 Although the division operation in `Uniform_Recycling` is more expensive than the simple arithmetic operations in `Uniform`, the increased entropy efficiency in `Uniform_Recycling` more than makes up the difference when randomness is expensive.
 As a typical example where randomness is treated as a scarce resource, the website [RANDOM.ORG](https://www.random.org) uses an algorithm similar to `Uniform_Recycling` for precisely this reason.
@@ -255,6 +255,8 @@ Therefore, the only entropy loss in `Inversion_Recycling` comes from the call to
 
 ## Information flow {#information-flow}
 
+Entropy efficiency can be understood as the amount of source information (randomness from the input coin `Flip()`) that ends up in the output samples.
+Information flow diagrams help us analyze entropy efficiency by illustrating how the random information flows through the program.
 At a high level, the classical inversion method for nonuniform sampling first converts coin flips to a discrete uniform random variable over a certain range, and then transforms the uniform into a sample from the target distribution, as shown in the following diagram.
 
 ![stateless inversion diagram](standalone-diagram.png)
